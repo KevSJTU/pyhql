@@ -3,7 +3,7 @@
 ============
 
 
-.. code-block:: javascript
+.. code-block:: python
     //example
     {
         "datas" : [
