@@ -15,6 +15,12 @@ class StrField(Field):
     pass
 class BoolField(Field):
     pass
+class DateField(Field):
+    pass
+class SetField(Field):
+    pass
+class FileSelector(dict):
+    pass
 
 
 class ItemMeta(ABCMeta):
@@ -41,6 +47,7 @@ class Model:
     model用来描述如何访问某个格式的文件
     """
     fields = {}
+    file_selector = [] # 可以重载,用来保存如何选择查询的文件
     @classmethod
     def _init_env_(cls):
         """

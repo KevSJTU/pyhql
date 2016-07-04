@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from pyhql.ddl import TextModel, ParquetModel, IntField, StrField, DataBase, BoolField
+from pyhql.ddl import TextModel, ParquetModel, IntField, StrField, DataBase, BoolField, DateField, FileSelector, \
+    SetField
 
 
 class UserProfile(TextModel):
@@ -29,8 +30,16 @@ class UserProfile(TextModel):
             return False
         locations = location_js["locations"]
         return any(l["city"] == city  for l in locations)
-    uid = IntField(name = "uid", desc = "用户的id", func = uid_func)
-    age = IntField(name = "age", desc = "用户的年龄",
+
+    @classmethod
+    def file_path_by_date(cls, date = None):
+        pass
+    # 重载file_selectors
+    file_selectors = [
+        FileSelector(desc = "选取哪一天的用户数据", func = file_path_by_date, param = [DateField(name = "date", desc="日期")])
+    ]
+    uid = IntField(desc = "用户的id", func = uid_func)
+    age = IntField(desc = "用户的年龄",
                          cat = {-1 : "当前为空",
                                 1 : "0~18岁",
                                 2 : "19~24岁",
@@ -40,10 +49,27 @@ class UserProfile(TextModel):
                                 6 : "55~64岁",
                                 7 : "大于64岁"},
                    func = age_func)
-    gender = IntField(name = "gender", desc = "用户的性别", func = gender_func,
+    gender = IntField(desc = "用户的性别", func = gender_func,
                       cat = {-1 : "当前为空",
                              0 : "男",
                              1 : "女"})
-    has_been_city = BoolField(name = "has_been_city", desc = "曾经出现在哪个城市", func = has_been_city_func, param = [IntField(name = "城市的ID")])
+    has_been_city = BoolField(desc = "最近出现在哪个城市", func = has_been_city_func, param = [IntField(name = "city_id",desc = "城市的ID")])
+
+class Calllog(ParquetModel):
+    uid = StrField(desc = "用户的ID", field = "uid")
+    call_type = StrField(desc = "通话的类型", field = "callItem.call_type", cat = {"INCOMING" : "打入的电话", "OUTCOMING" : "打出的电话"})
+    other_phone = StrField(desc = "对方的电话", field = "callItem.other_phone")
+    @classmethod
+    def file_path_by_date(cls, start_date, end_date):
+        pass
+    file_selectors = [
+        FileSelector(desc = "选取哪个时间段的数据", func = file_path_by_date, param = [DateField(name = "start_date", desc = "起始日期"),DateField(name = "end_date", desc = "终止日期")])
+    ]
+
+    def is_outcoming_func(self, phone_set):
+        pass
+
+    is_outcoming = BoolField(desc = "是否是拨打该集合内的电话", func = is_outcoming_func, param = [SetField(name = "phone_set", desc = "拨打电话的集合", elm_type = StrField())])
+
 
 
