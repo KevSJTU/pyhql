@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-from pyhql.ddl import TextModel, ParquetModel, IntField, StrField, DataBase, BoolField, DateField, FileSelector, \
-    SetField
+from pyhql.ddl import TextModel, ParquetModel, IntField, StrField, DataBase, BoolField, DateField, FileSelector
 
 
 class UserProfile(TextModel):
@@ -69,7 +68,7 @@ class Calllog(ParquetModel):
     def is_outcoming_func(self, phone_set):
         pass
 
-    is_outcoming = BoolField(desc = "是否是拨打该集合内的电话", func = is_outcoming_func, param = [SetField(name = "phone_set", desc = "拨打电话的集合", elm_type = StrField())])
+    is_outcoming = BoolField(desc = "是否是拨打该集合内的电话", func = is_outcoming_func, param = [StrField(name = "phone", desc = "拨打电话")])
 
 
 db = DataBase()
