@@ -89,9 +89,11 @@ class CalllogUserView(NaiveView):
     uid = StrField(desc = "用户的ID", func = uid_func)
     @classmethod
     def __mapper__(cls, str, field_exps):
+        # 根据需要的field,进行的map操作
         pass
     @classmethod
     def __reducer__(cls, group, field_exps):
+        # 根据需要的field,进行的reduce操作
         pass
     view_src = Calllog # 重载参数,添加依赖
 
