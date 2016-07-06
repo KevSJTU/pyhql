@@ -21,8 +21,6 @@ class Field(dict):
         for key, val in self.items():
             if key == "params":
                 ret["params"] = [v.description() for v in val]
-            elif key == "_foreign":
-                ret["_foreign"] = val
             elif key.startswith("_") or key == "func":
                 pass
             else:
@@ -134,6 +132,20 @@ class TextModel(Model):
         """
         raise "Not Implemented"
 
+class NaiveView(TextModel):
+    """
+    有些文件是不保存的,如果需要就生成
+    """
+    @classmethod
+    def __mapper__(cls, str, fields):
+        pass
+    @classmethod
+    def __reducer__(cls, group, fields):
+        pass
+    view_src = None # 重载参数,添加依赖
+
+
+
 
 class ParquetModel(Model):
     """
@@ -149,7 +161,6 @@ class DataBase:
     def __init__(self):
         self.concepts = {}
         self.describe_relations = defaultdict(dict)
-        self.foreigns = {}
         self.fields = {}
     def concept(self, name, **kwargs):
         self.concepts[name] = kwargs
@@ -164,9 +175,6 @@ class DataBase:
         for f in model.fields.values():
             self.fields[f.identifier()] = f
         self.describe_relations[concept][model.__name__] = DescribeRelation(model, primary)
-    def foreign(self, field, concept):
-        field["_foreign"] = concept
-        self.foreigns[field.identifier()] = concept
 
     def description(self):
         return {
@@ -287,6 +295,20 @@ class GroupExp:
         assert concept in db.concepts
         targets = [TargetExp.from_json(x, db) for x in js["targets"]]
         return GroupExp(_id, concept, targets)
+class AggExp:
+    @classmethod
+    def from_json(cls, js, db):
+        """
+        接受的js格式
+        {
+            "type" : "agg",
+            "_id" : string, //当前表达式的id
+            "concept" :
+        }
+        :param js:
+        :param db:
+        :return:
+        """
 class QueryLanguage:
     @classmethod
     def from_json(cls, js, db):

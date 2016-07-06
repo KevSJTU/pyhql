@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from pyhql.ddl import TextModel, ParquetModel, IntField, StrField, DataBase, BoolField, DateField, FileSelector
+from pyhql.ddl import TextModel, ParquetModel, IntField, StrField, DataBase, BoolField, DateField, FileSelector, \
+    NaiveView
 
 
 class UserProfile(TextModel):
@@ -36,7 +37,7 @@ class UserProfile(TextModel):
     # 重载file_selectors
     file_selectors = [
         FileSelector(desc = "选取哪一天的用户数据", func = file_path_by_date, params = [DateField(name = "date", desc="日期")])
-    ]
+        ]
     uid = IntField(desc = "用户的id", func = uid_func)
     age = IntField(desc = "用户的年龄",
                          cat = {-1 : "当前为空",
@@ -70,13 +71,50 @@ class Calllog(ParquetModel):
 
     is_outcoming = BoolField(desc = "是否是拨打该集合内的电话", func = is_outcoming_func, param = [StrField(name = "phone", desc = "拨打电话")])
 
+class CalllogUserView(NaiveView):
+    modules = []
+    @classmethod
+    def _init_env_(cls):
+        import json
+        cls.modules["json"] = json
+    @classmethod
+    def load(cls, str):
+        larr = str.strip().split("\t")
+        larr[1] = cls.modules["json"].loads(larr[1])
+        return larr
+    @classmethod
+    def uid_func(cls, data):
+        return data[0]
+
+    uid = StrField(desc = "用户的ID", func = uid_func)
+    @classmethod
+    def __mapper__(cls, str, field_exps):
+        pass
+    @classmethod
+    def __reducer__(cls, group, field_exps):
+        pass
+    view_src = Calllog # 重载参数,添加依赖
+
+    @classmethod
+    def called_phone_func(cls, data, phone):
+        return data[1]["called_phone"][phone]
+    called_phone = BoolField(desc = "用户是否拨打拨打了该电话", param=StrField(name = "phone", desc = "拨打的电话"))
+
+    @classmethod
+    def called_type_func(cls, data, typ):
+        return data[1]["called_type"][typ]
+    called_type = BoolField(desc = "用户是否拨打了该类型的电话", param = StrField(name = "type", desc = "拨打电话类型"))
+
+
+
 
 db = DataBase()
 db.concept("user", desc = "用户")
 db.describe("user", UserProfile, "uid")
+db.describe("user", CalllogUserView, "uid")
+
 db.concept("calllog", desc = "通话记录")
-db.describe("calllog", Calllog) #并没有primary key
-db.foreign(Calllog.fields["uid"], "user")
+db.describe("calllog", Calllog)
 
 print(db.description())
 
