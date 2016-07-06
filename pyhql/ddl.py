@@ -1,10 +1,34 @@
 # -*- coding: utf-8 -*-
 import six
 from abc import ABCMeta
+from collections import defaultdict
 
 class Field(dict):
     """保存Field的信息"""
-    pass
+    def __init__(self, **kwargs): # known special case of dict.__init__
+        assert "type" not in kwargs
+        if "params" in kwargs:
+            assert isinstance(kwargs["params"], list)
+            assert all(isinstance(k, Field) for k in kwargs["params"])
+            assert all(not k.startswith("_") for k in kwargs)
+        super(Field, self).__init__(**kwargs)
+    def description(self):
+        ret = {
+            "type" : self.__class__.__name__
+        }
+        for key, val in self.items():
+            if key == "params":
+                ret["params"] = [v.description() for v in val]
+            elif key == "_foreign":
+                ret["_foreign"] = val
+            elif key.startswith("_") or key == "func":
+                pass
+            else:
+                ret[key] = val
+        return ret
+    def identifier(self):
+        return self["_model"].__name__ + "." + self["name"]
+
 class IntField(Field):
     pass
 class FloatField(Field):
@@ -33,6 +57,8 @@ class ItemMeta(ABCMeta):
             v = getattr(_class, n)
             if isinstance(v, Field):
                 fields[n] = v
+                v["_model"] = _class
+                v["name"] = n
             elif n in attrs:
                 new_attrs[n] = attrs[n]
 
@@ -75,28 +101,44 @@ class ParquetModel(Model):
     用于表示parquet格式的数据
     """
     pass
+class DescribeRelation:
+    def __init__(self, model, primary):
+        self.model = model
+        self.primary = primary
 
 class DataBase:
     def __init__(self):
-        pass
-    def describe(self, concept, model):
+        self.concepts = {}
+        self.describe_relations = defaultdict(list)
+        self.foreigns = {}
+    def concept(self, name, **kwargs):
+        self.concepts[name] = kwargs
+    def describe(self, concept, model, primary=None):
         """
         数据是用来描述一个什么概念.
         :param concept: 这个概念的名称
         :param model: model
+        :param primary: 主键
         :return:
         """
-        pass
-    def fields(self, primary_key):
-        """
-        返回数据库中的,primary_key
-        :param primary_key: 主键
-        :return: [Field]
-        """
-        pass
-    def __getitem__(self, **kwargs):
-        """
-        选中需要查询的数据的范围.
-        :return:
-        """
-        pass
+        self.describe_relations[concept].append(DescribeRelation(model, primary))
+    def foreign(self, field, concept):
+        field["_foreign"] = concept
+        self.foreigns[field.identifier()] = concept
+
+    def description(self):
+        return {
+            "datas" : [self.concept_description(concept) for concept in self.concepts]
+        }
+    def concept_description(self, concept):
+        concept_data = self.concepts[concept]
+        return {
+            "name" : concept,
+            "desc" : concept_data["desc"],
+            "tables" : [self.table_description(r) for r in self.describe_relations[concept]]
+        }
+    def table_description(self, relation):
+        return {
+            "name" : relation.model.__name__,
+            "fields": [x.description() for x in relation.model.fields.values()]
+        }

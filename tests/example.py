@@ -36,7 +36,7 @@ class UserProfile(TextModel):
         pass
     # 重载file_selectors
     file_selectors = [
-        FileSelector(desc = "选取哪一天的用户数据", func = file_path_by_date, param = [DateField(name = "date", desc="日期")])
+        FileSelector(desc = "选取哪一天的用户数据", func = file_path_by_date, params = [DateField(name = "date", desc="日期")])
     ]
     uid = IntField(desc = "用户的id", func = uid_func)
     age = IntField(desc = "用户的年龄",
@@ -53,7 +53,7 @@ class UserProfile(TextModel):
                       cat = {-1 : "当前为空",
                              0 : "男",
                              1 : "女"})
-    has_been_city = BoolField(desc = "最近出现在哪个城市", func = has_been_city_func, param = [IntField(name = "city_id",desc = "城市的ID")])
+    has_been_city = BoolField(desc = "最近出现在哪个城市", func = has_been_city_func, params = [IntField(name = "city_id",desc = "城市的ID")])
 
 class Calllog(ParquetModel):
     uid = StrField(desc = "用户的ID", field = "uid")
@@ -63,7 +63,7 @@ class Calllog(ParquetModel):
     def file_path_by_date(cls, start_date, end_date):
         pass
     file_selectors = [
-        FileSelector(desc = "选取哪个时间段的数据", func = file_path_by_date, param = [DateField(name = "start_date", desc = "起始日期"),DateField(name = "end_date", desc = "终止日期")])
+        FileSelector(desc = "选取哪个时间段的数据", func = file_path_by_date, params = [DateField(name = "start_date", desc = "起始日期"),DateField(name = "end_date", desc = "终止日期")])
     ]
 
     def is_outcoming_func(self, phone_set):
@@ -72,4 +72,12 @@ class Calllog(ParquetModel):
     is_outcoming = BoolField(desc = "是否是拨打该集合内的电话", func = is_outcoming_func, param = [SetField(name = "phone_set", desc = "拨打电话的集合", elm_type = StrField())])
 
 
+db = DataBase()
+db.concept("user", desc = "用户")
+db.describe("user", UserProfile, "uid")
+db.concept("calllog", desc = "通话记录")
+db.describe("calllog", Calllog) #并没有primary key
+db.foreign(Calllog.fields["uid"], "user")
+
+print(db.description())
 
